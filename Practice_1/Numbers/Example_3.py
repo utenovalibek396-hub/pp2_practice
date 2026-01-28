@@ -4,3 +4,5 @@ c = -145.4
 print(type(a))
 print(type(b))
 print(type(c))
+
+#type: float
