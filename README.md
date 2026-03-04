@@ -1,6 +1,4 @@
-Practice-4/
-
-├── generators.py     
-├── dates.py          
-├── math.py           
-└── json.py           
+Practice5/
+├── receipt_parser.py
+├── raw.txt
+└── README.md
