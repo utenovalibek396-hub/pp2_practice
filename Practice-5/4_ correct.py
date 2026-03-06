@@ -1,8 +1,7 @@
 import re
-pattern = r"^[a-z]+_[a-z]+$"
+pattern = r"\b[A-Z][a-z]+\b"
 text = input("Enter a string: ")
-if re.match(pattern, text):
+if re.search(pattern, text):
     print("Yes")
 else:
     print("No")
-
