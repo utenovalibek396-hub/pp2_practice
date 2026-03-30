@@ -1,6 +1,12 @@
-import psycopg2
 import csv
+import os
+import psycopg2
 
+CSV_FILE = "contacts.csv"
+
+memory_contacts = []
+
+# ------------------- PostgreSQL -------------------
 def connect():
     try:
         return psycopg2.connect(
@@ -47,73 +53,115 @@ def fetch_data(query, params=None):
 
 def create_table():
     execute_query("""
-    CREATE TABLE IF NOT EXISTS contacts (
-        username VARCHAR(100) PRIMARY KEY,
-        phone VARCHAR(20)
-    );
+        CREATE TABLE IF NOT EXISTS contacts (
+            username VARCHAR(100) PRIMARY KEY,
+            phone VARCHAR(20)
+        );
     """)
 
+# ------------------- CSV -------------------
+def read_csv():
+    if not os.path.exists(CSV_FILE):
+        return []
+    with open(CSV_FILE, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+def append_to_csv(new_data):
+    file_exists = os.path.exists(CSV_FILE)
+    with open(CSV_FILE, "a", newline="", encoding="utf-8") as f:
+        fieldnames = ["username", "phone"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+
+        if not file_exists:
+            writer.writeheader()
+
+        for c in new_data:
+            writer.writerow(c)
+
+# ------------------- Контакт операциялары -------------------
 def insert_from_console():
     username = input("Name: ")
     phone = input("Phone: ")
 
-    ok = execute_query(
+    # PostgreSQL-ға жазамыз
+    execute_query(
         "INSERT INTO contacts (username, phone) VALUES (%s, %s) ON CONFLICT (username) DO NOTHING;",
         (username, phone)
     )
 
-    if ok:
-        print("✅ Қосылды!")
+    # Тек memory-ге сақтаймыз
+    memory_contacts.append({"username": username, "phone": phone})
+
+    print("✅ Memory-ге сақталды (CSV-ға әлі жазылған жоқ)")
+
+def export_to_csv():
+    if not memory_contacts:
+        print("⚠️ Export жасайтын мәлімет жоқ")
+        return
+
+    existing = read_csv()
+
+    new_unique = []
+    for m in memory_contacts:
+        if all(not (c["username"] == m["username"] and c["phone"] == m["phone"]) for c in existing):
+            new_unique.append(m)
+
+    append_to_csv(new_unique)
+
+    print("✅ CSV-ға қосылды!")
 
 def update_contact():
-    choice = input("1 - Username, 2 - Phone: ")
+    print("1 - Username, 2 - Phone")
+    choice = input("> ")
 
     if choice == '1':
         old_un = input("Old name: ")
         new_un = input("New name: ")
 
-        ok = execute_query(
+        execute_query(
             "UPDATE contacts SET username = %s WHERE username = %s;",
             (new_un, old_un)
         )
 
-        if ok:
-            print("✅ Аты жаңартылды!")
+        data = read_csv()
+        for c in data:
+            if c["username"] == old_un:
+                c["username"] = new_un
+        with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["username", "phone"])
+            writer.writeheader()
+            writer.writerows(data)
+
+        print("✅ Жаңартылды!")
 
     elif choice == '2':
         un = input("Name: ")
         new_ph = input("New phone: ")
 
-        ok = execute_query(
+        execute_query(
             "UPDATE contacts SET phone = %s WHERE username = %s;",
             (new_ph, un)
         )
 
-        if ok:
-            print("✅ Телефон жаңартылды!")
+        data = read_csv()
+        for c in data:
+            if c["username"] == un:
+                c["phone"] = new_ph
+
+        with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["username", "phone"])
+            writer.writeheader()
+            writer.writerows(data)
+
+        print("✅ Жаңартылды!")
 
 def query_contacts():
-    print("\n--- SEARCH MENU ---")
-    print("1. All | 2. By Name | 3. By Prefix")
-    choice = input("> ")
+    res = fetch_data("SELECT username, phone FROM contacts;")
 
-    if choice == '1':
-        res = fetch_data("SELECT username, phone FROM contacts;")
-    elif choice == '2':
-        val = input("Name: ")
-        res = fetch_data(
-            "SELECT username, phone FROM contacts WHERE username ILIKE %s;",
-            (f"%{val}%",)
-        )
-    elif choice == '3':
-        val = input("Prefix: ")
-        res = fetch_data(
-            "SELECT username, phone FROM contacts WHERE phone LIKE %s;",
-            (f"{val}%",)
-        )
-    else:
-        print("❌ Қате таңдау")
-        return
+    data_csv = read_csv()
+    for c in data_csv:
+        if (c["username"], c["phone"]) not in res:
+            res.append((c["username"], c["phone"]))
 
     print("\n--- НӘТИЖЕ ---")
     if not res:
@@ -123,32 +171,29 @@ def query_contacts():
             print(f"{u} -> {p}")
 
 def delete_contact():
-    choice = input("1 - By Name, 2 - By Phone: ")
+    val = input("Name: ")
 
-    if choice == '1':
-        val = input("Name: ")
-        ok = execute_query(
-            "DELETE FROM contacts WHERE username = %s;",
-            (val,)
-        )
-        if ok:
-            print("🗑 Өшірілді!")
+    execute_query(
+        "DELETE FROM contacts WHERE username = %s;",
+        (val,)
+    )
 
-    elif choice == '2':
-        val = input("Phone: ")
-        ok = execute_query(
-            "DELETE FROM contacts WHERE phone = %s;",
-            (val,)
-        )
-        if ok:
-            print("🗑 Өшірілді!")
+    data = read_csv()
+    data = [c for c in data if c["username"] != val]
 
+    with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["username", "phone"])
+        writer.writeheader()
+        writer.writerows(data)
+
+    print("🗑 Өшірілді!")
+
+# ------------------- MAIN -------------------
 def main():
     create_table()
-
     while True:
         print("\n--- MAIN MENU ---")
-        print("1. Add | 2. Update | 3. Search | 4. Delete | 0. Exit")
+        print("1. Add | 2. Update | 3. Search | 4. Delete | 5. Export to CSV | 0. Exit")
         cmd = input("> ")
 
         if cmd == '1':
@@ -159,6 +204,8 @@ def main():
             query_contacts()
         elif cmd == '4':
             delete_contact()
+        elif cmd == '5':
+            export_to_csv()
         elif cmd == '0':
             break
         else:
