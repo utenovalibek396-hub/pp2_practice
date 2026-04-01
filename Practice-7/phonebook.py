@@ -2,8 +2,7 @@ import csv
 import os
 import psycopg2
 
-CSV_FILE = "contacts.csv"
-
+CSV_FILE = "Practice-7/contacts.csv"
 memory_contacts = []
 
 # ------------------- PostgreSQL -------------------
@@ -78,21 +77,18 @@ def append_to_csv(new_data):
         for c in new_data:
             writer.writerow(c)
 
-# ------------------- Контакт операциялары -------------------
+# ------------------- CRUD -------------------
 def insert_from_console():
     username = input("Name: ")
     phone = input("Phone: ")
 
-    # PostgreSQL-ға жазамыз
     execute_query(
         "INSERT INTO contacts (username, phone) VALUES (%s, %s) ON CONFLICT (username) DO NOTHING;",
         (username, phone)
     )
 
-    # Тек memory-ге сақтаймыз
     memory_contacts.append({"username": username, "phone": phone})
-
-    print("✅ Memory-ге сақталды (CSV-ға әлі жазылған жоқ)")
+    print("✅ Memory-ге сақталды")
 
 def export_to_csv():
     if not memory_contacts:
@@ -107,12 +103,13 @@ def export_to_csv():
             new_unique.append(m)
 
     append_to_csv(new_unique)
-
     print("✅ CSV-ға қосылды!")
 
 def update_contact():
     print("1 - Username, 2 - Phone")
     choice = input("> ")
+
+    data = read_csv()
 
     if choice == '1':
         old_un = input("Old name: ")
@@ -123,16 +120,9 @@ def update_contact():
             (new_un, old_un)
         )
 
-        data = read_csv()
         for c in data:
             if c["username"] == old_un:
                 c["username"] = new_un
-        with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=["username", "phone"])
-            writer.writeheader()
-            writer.writerows(data)
-
-        print("✅ Жаңартылды!")
 
     elif choice == '2':
         un = input("Name: ")
@@ -143,25 +133,57 @@ def update_contact():
             (new_ph, un)
         )
 
-        data = read_csv()
         for c in data:
             if c["username"] == un:
                 c["phone"] = new_ph
+    else:
+        print("❌ Қате таңдау")
+        return
 
-        with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=["username", "phone"])
-            writer.writeheader()
-            writer.writerows(data)
+    with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["username", "phone"])
+        writer.writeheader()
+        writer.writerows(data)
 
-        print("✅ Жаңартылды!")
+    print("✅ Жаңартылды!")
 
 def query_contacts():
-    res = fetch_data("SELECT username, phone FROM contacts;")
+    print("\n--- SEARCH MENU ---")
+    print("1. All | 2. By Name | 3. By Phone")
+    choice = input("> ")
 
+    if choice == '1':
+        res = fetch_data("SELECT username, phone FROM contacts;")
+
+    elif choice == '2':
+        name = input("Name: ")
+        res = fetch_data(
+            "SELECT username, phone FROM contacts WHERE username ILIKE %s;",
+            (f"%{name}%",)
+        )
+
+    elif choice == '3':
+        phone = input("Phone: ")
+        res = fetch_data(
+            "SELECT username, phone FROM contacts WHERE phone LIKE %s;",
+            (f"%{phone}%",)
+        )
+    else:
+        print("❌ Қате таңдау")
+        return
+
+    # CSV-мен біріктіру
     data_csv = read_csv()
     for c in data_csv:
-        if (c["username"], c["phone"]) not in res:
-            res.append((c["username"], c["phone"]))
+        pair = (c["username"], c["phone"])
+
+        if pair not in res:
+            if choice == '1':
+                res.append(pair)
+            elif choice == '2' and name.lower() in c["username"].lower():
+                res.append(pair)
+            elif choice == '3' and phone in c["phone"]:
+                res.append(pair)
 
     print("\n--- НӘТИЖЕ ---")
     if not res:
