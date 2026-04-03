@@ -49,7 +49,7 @@ def fetch_data(query, params=None):
         cur.close()
         conn.close()
 
-# ------------------- CREATE ALL -------------------
+# ------------------- CREATE -------------------
 def create_all():
     execute_query("""
         CREATE TABLE IF NOT EXISTS contacts (
@@ -82,25 +82,6 @@ def create_all():
             INSERT INTO contacts(username, phone)
             VALUES (p_name, p_phone);
         END IF;
-    END;
-    $$ LANGUAGE plpgsql;
-    """)
-
-    execute_query("""
-    CREATE OR REPLACE PROCEDURE insert_many_users(names TEXT[], phones TEXT[])
-    AS $$
-    DECLARE
-        i INT;
-    BEGIN
-        FOR i IN 1..array_length(names,1) LOOP
-            IF phones[i] NOT LIKE '+7%' THEN
-                RAISE NOTICE 'Қате номер: %', phones[i];
-            ELSE
-                INSERT INTO contacts(username, phone)
-                VALUES (names[i], phones[i])
-                ON CONFLICT (username) DO NOTHING;
-            END IF;
-        END LOOP;
     END;
     $$ LANGUAGE plpgsql;
     """)
@@ -139,28 +120,16 @@ def export_to_csv():
     data = fetch_data("SELECT username, phone FROM contacts;")
 
     if not data:
-        print("⚠️ Экспорт жасайтын мәлімет жоқ")
+        print("⚠️ Мәлімет жоқ")
         return
 
-    existing = read_csv()
+    with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["username", "phone"])
+        writer.writeheader()
+        for u, p in data:
+            writer.writerow({"username": u, "phone": p})
 
-    new_data = []
-    for u, p in data:
-        if all(not (c["username"] == u and c["phone"] == p) for c in existing):
-            new_data.append({"username": u, "phone": p})
-
-    file_exists = os.path.exists(CSV_FILE)
-
-    with open(CSV_FILE, "a", newline="", encoding="utf-8") as f:
-        fieldnames = ["username", "phone"]
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-
-        if not file_exists:
-            writer.writeheader()
-
-        writer.writerows(new_data)
-
-    print("✅ CSV-ға экспорт жасалды!")
+    print("✅ CSV жаңартылды!")
 
 # ------------------- FUNCTIONS -------------------
 def insert_user():
@@ -171,22 +140,46 @@ def insert_user():
     print("✅ Added/Updated")
 
 def insert_many():
-    names = input("Names (comma): ").split(",")
-    phones = input("Phones (comma): ").split(",")
+    names = [n.strip() for n in input("Names (comma): ").split(",")]
+    phones = [p.strip() for p in input("Phones (comma): ").split(",")]
 
-    execute_query("CALL insert_many_users(%s, %s);", (names, phones))
+    if len(names) != len(phones):
+        print("⚠️ Names пен Phones саны сәйкес емес!")
+        return
+
+    for name, phone in zip(names, phones):
+        if not phone.startswith("+7"):
+            print(f"⚠️ Қате номер: {phone}")
+            continue
+        execute_query("CALL insert_or_update_user(%s, %s);", (name, phone))
+
     print("✅ Done")
 
 def search():
-    pattern = input("Search: ")
-    res = fetch_data("SELECT * FROM search_pattern(%s);", (pattern,))
+    pattern = input("Search: ").lower()
+
+    # DB search
+    db_res = fetch_data("SELECT * FROM search_pattern(%s);", (pattern,))
+
+    # CSV search
+    csv_res = []
+    for row in read_csv():
+        if pattern in row["username"].lower() or pattern in row["phone"]:
+            csv_res.append((row["username"], row["phone"]))
 
     print("\n--- НӘТИЖЕ ---")
-    if not res:
+
+    if not db_res and not csv_res:
         print("Мәлімет табылмады")
-    else:
-        for u, p in res:
-            print(f"{u} -> {p}")
+        return
+
+    print("\n[DB]:")
+    for u, p in db_res:
+        print(f"{u} -> {p}")
+
+    print("\n[CSV]:")
+    for u, p in csv_res:
+        print(f"{u} -> {p}")
 
 def pagination():
     limit = int(input("Limit: "))

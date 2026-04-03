@@ -1,11 +1,23 @@
-CREATE OR REPLACE FUNCTION get_contacts_paginated(p_limit INT, p_offset INT)
-RETURNS TABLE(username VARCHAR, phone VARCHAR)
+CREATE OR REPLACE FUNCTION search_pattern(pattern TEXT)
+RETURNS TABLE(username TEXT, phone TEXT)
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT c.username, c.phone
+    SELECT c.username::TEXT, c.phone::TEXT
     FROM contacts c
-    ORDER BY c.username
-    LIMIT p_limit OFFSET p_offset;
+    WHERE c.username ILIKE '%' || pattern || '%'
+       OR c.phone ILIKE '%' || pattern || '%';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_paginated(lim INT, off INT)
+RETURNS TABLE(username TEXT, phone TEXT)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT c.username::TEXT, c.phone::TEXT
+    FROM contacts c
+    ORDER BY username
+    LIMIT lim OFFSET off;
 END;
 $$ LANGUAGE plpgsql;
