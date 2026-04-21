@@ -105,7 +105,7 @@ def main():
         screen.fill(COLOR_BG)
 
         # ── Header ───────────────────────────────────────────────────────
-        title_surf = font_title.render("🎵 Music Player", True, COLOR_ACCENT)
+        title_surf = font_title.render("Music Player", True, COLOR_ACCENT)
         screen.blit(title_surf, title_surf.get_rect(center=(SCREEN_WIDTH // 2, 45)))
 
         # Divider
