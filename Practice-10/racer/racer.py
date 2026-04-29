@@ -13,8 +13,9 @@ SCREEN_WIDTH = 400
 SCREEN_HEIGHT = 600
 FPS = 60
 
-SPEED = 5
+SPEED = 1
 PLAYER_SPEED = 5
+
 
 SCORE = 0
 COINS_COLLECTED = 0
@@ -36,6 +37,7 @@ ROAD_LINE = (240, 240, 240)
 BASE_DIR = os.path.dirname(__file__)
 RED_CAR_PATH = os.path.join(BASE_DIR, "assets", "red_car.png")
 COIN_PATH = os.path.join(BASE_DIR, "assets", "coin.png")
+BLUE_CAR_PATH = os.path.join(BASE_DIR, "assets", "blue_car.png")
 
 # Create display
 DISPLAYSURF = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -235,7 +237,7 @@ while True:
 
     # Show score text
     score_text = font_small.render("Score: " + str(SCORE), True, BLACK)
-    coin_text = font_small.render("Coins: " + str(COINS_COLLECTED), True, BLACK)
+    coin_text = font_small.render("Coins: " + str(COINS_COLLECTED), True, RED)
 
     DISPLAYSURF.blit(score_text, (10, 10))
     DISPLAYSURF.blit(coin_text, (SCREEN_WIDTH - coin_text.get_width() - 10, 10))

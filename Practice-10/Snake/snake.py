@@ -25,34 +25,34 @@ def load(name):
     )
 
 # HEAD
-head_up = load("head_up.png")
-head_down = load("head_down.png")
-head_left = load("head_left.png")
-head_right = load("head_right.png")
+head_up = load("assets/head_up.png")
+head_down = load("assets/head_down.png")
+head_left = load("assets/head_left.png")
+head_right = load("assets/head_right.png")
 
 # TAIL
-tail_up = load("tail_up.png")
-tail_down = load("tail_down.png")
-tail_left = load("tail_left.png")
-tail_right = load("tail_right.png")
+tail_up = load("assets/tail_up.png")
+tail_down = load("assets/tail_down.png")
+tail_left = load("assets/tail_left.png")
+tail_right = load("assets/tail_right.png")
 
 # BODY
-body_vertical = load("body_vertical.png")
-body_horizontal = load("body_horizontal.png")
-body_topleft = load("body_topleft.png")
-body_topright = load("body_topright.png")
-body_bottomleft = load("body_bottomleft.png")
-body_bottomright = load("body_bottomright.png")
+body_vertical = load("assets/body_vertical.png")
+body_horizontal = load("assets/body_horizontal.png")
+body_topleft = load("assets/body_topleft.png")
+body_topright = load("assets/body_topright.png")
+body_bottomleft = load("assets/body_bottomleft.png")
+body_bottomright = load("assets/body_bottomright.png")
 
 # FOOD + BACKGROUND
-food_img = load("apple.png")
+food_img = load("assets/apple.png")
 bg_img = pygame.transform.scale(
-    pygame.image.load("background.jpg"),
+    pygame.image.load("assets/background.jpg"),
     (WIDTH, HEIGHT)
 )
-eat_sound = pygame.mixer.Sound("eat.wav")
-gameover_sound = pygame.mixer.Sound("gameover.wav")
-move_sound = pygame.mixer.Sound("move.wav")
+eat_sound = pygame.mixer.Sound("assets/eat.wav")
+gameover_sound = pygame.mixer.Sound("assets/gameover.wav")
+move_sound = pygame.mixer.Sound("assets/move.wav")
 # --- SCREEN ---
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Snake Game")

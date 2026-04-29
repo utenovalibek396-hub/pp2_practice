@@ -47,7 +47,7 @@ def main():
 
     tool = "brush"
     color = BLACK
-    brush_size = 8
+    brush_size = 5
     eraser_size = 24
     drawing = False
     start_pos = None
