@@ -1,9 +1,9 @@
 {
   "sound": true,
   "car_color": [
-    60,
+    230,
     200,
-    100
+    40
   ],
-  "difficulty": "hard"
+  "difficulty": "normal"
 }
